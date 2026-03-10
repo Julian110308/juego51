@@ -1,6 +1,6 @@
 class Api {
-  static const String baseUrl = 'http://127.0.0.1:8000';
-  static const String wsUrl = 'ws://127.0.0.1:8000';
+  static const String baseUrl = 'http://192.168.137.1:8000';
+  static const String wsUrl = 'ws://192.168.137.1:8000';
 
   static const String login = '$baseUrl/auth/login';
   static const String registro = '$baseUrl/auth/registro';
