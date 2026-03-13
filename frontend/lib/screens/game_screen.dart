@@ -1203,83 +1203,76 @@ class _MiMano extends StatelessWidget {
   Widget build(BuildContext context) {
     final mano = (game.miEstado?['mano'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
-    return Container(
-      height: 122,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Color(0xE00D1117), Color(0xFF07090F)],
-          stops: [0.0, 0.28, 1.0],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: 170,
+      child: Stack(
+        clipBehavior: Clip.none,   // cards can lift above the widget bounds
         children: [
-          // Carril / separador decorativo
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 1,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.transparent, _C.gold.withAlpha(70), Colors.transparent],
-                      ),
-                    ),
-                  ),
+          // ── Gradiente de fondo: mesa se ve en la parte superior
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Color(0xBB0D1117), Color(0xFF07090F)],
+                  stops: [0.0, 0.18, 1.0],
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(
-                    children: [
-                      Text('MI MANO', style: GoogleFonts.inter(color: _C.text3, fontSize: 8, letterSpacing: 2, fontWeight: FontWeight.w700)),
-                      if (game.seleccionadas.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: _C.gold.withAlpha(30),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '${game.seleccionadas.length} SEL.',
-                            style: GoogleFonts.inter(color: _C.goldLight, fontSize: 7, fontWeight: FontWeight.w700, letterSpacing: 0.8),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    height: 1,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.transparent, _C.gold.withAlpha(70), Colors.transparent],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          // Cartas en abanico
-          Expanded(
+          // ── Mano dibujada (ocupa el 50% inferior)
+          const Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: SizedBox(
+              height: 86,
+              child: CustomPaint(painter: _HandPainter()),
+            ),
+          ),
+          // ── Etiqueta superior
+          Positioned(
+            top: 5, left: 0, right: 0,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('MI MANO',
+                      style: GoogleFonts.inter(
+                          color: _C.text3, fontSize: 8,
+                          letterSpacing: 2, fontWeight: FontWeight.w700)),
+                  if (game.seleccionadas.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: _C.gold.withAlpha(30),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text('${game.seleccionadas.length} SEL.',
+                          style: GoogleFonts.inter(
+                              color: _C.goldLight, fontSize: 7,
+                              fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          // ── Cartas en abanico (flotan encima de la mano)
+          Positioned(
+            left: 0, right: 0,
+            top: 22, bottom: 52,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               itemCount: mano.length,
               itemBuilder: (context, index) {
                 final carta = mano[index];
                 final iid = carta['iid'] ?? '$index';
                 final sel = game.seleccionadas.contains(iid);
-                // Leve rotación tipo abanico
                 final mid = (mano.length - 1) / 2.0;
-                final angle = (index - mid) * 0.018;
+                final angle = (index - mid) * 0.022;
                 return Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: Transform.rotate(
@@ -1296,11 +1289,124 @@ class _MiMano extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(height: 6),
         ],
       ),
     );
   }
+}
+
+/// Dibuja una mano con guante de cuero oscuro: 4 dedos + pulgar + banda dorada
+class _HandPainter extends CustomPainter {
+  const _HandPainter();
+
+  static const _deep = Color(0xFF100800);
+  static const _mid  = Color(0xFF1E1005);
+  static const _hi   = Color(0xFF321A0A);
+  static const _gold = Color(0xFFFFB800);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // ── 1. Palma (base ancha, rellena el 60% inferior)
+    final pY = h * 0.35;
+    final palmRect = Rect.fromLTWH(w * 0.025, pY, w * 0.95, h - pY + 4);
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(palmRect,
+        topLeft:  Radius.circular(w * 0.22),
+        topRight: Radius.circular(w * 0.22),
+        bottomLeft: const Radius.circular(6),
+        bottomRight: const Radius.circular(6),
+      ),
+      Paint()..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [_mid, _deep],
+      ).createShader(palmRect),
+    );
+
+    // Reflejo suave en el borde superior de la palma
+    canvas.drawLine(
+      Offset(w * 0.09, pY), Offset(w * 0.91, pY),
+      Paint()..color = Colors.white.withAlpha(20)..strokeWidth = 1.1,
+    );
+
+    // ── 2. Banda de muñeca dorada (doble línea)
+    final bY = h * 0.80;
+    canvas.drawLine(Offset(w * 0.09, bY), Offset(w * 0.91, bY),
+        Paint()..color = _gold.withAlpha(100)..strokeWidth = 1.8);
+    canvas.drawLine(Offset(w * 0.09, bY + 4), Offset(w * 0.91, bY + 4),
+        Paint()..color = _gold.withAlpha(38)..strokeWidth = 0.8);
+
+    // ── 3. Cuatro dedos (índice, medio, anular, meñique)
+    final fW = w * 0.082;
+    // [centerX fraction, topY fraction]
+    const fingerDefs = <List<double>>[
+      [0.255, 0.10], // índice
+      [0.375, 0.03], // medio (más alto)
+      [0.495, 0.07], // anular
+      [0.615, 0.18], // meñique
+    ];
+
+    for (final f in fingerDefs) {
+      final cx    = w * f[0];
+      final fTopY = h * f[1];
+      final fRect = Rect.fromLTWH(cx - fW / 2, fTopY, fW, h - fTopY + 4);
+
+      // Cuerpo del dedo
+      canvas.drawRRect(
+        RRect.fromRectAndCorners(fRect,
+          topLeft:  Radius.circular(fW / 2),
+          topRight: Radius.circular(fW / 2),
+        ),
+        Paint()..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: const [_deep, _hi, _deep],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(fRect),
+      );
+
+      // Reflejo en la punta (semicírculo)
+      canvas.drawArc(
+        Rect.fromLTWH(cx - fW / 2 + 1.5, fTopY + 1.5, fW - 3, fW - 3),
+        math.pi, math.pi, false,
+        Paint()
+          ..color = Colors.white.withAlpha(22)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.9,
+      );
+
+      // Línea de nudillo
+      final kY = fTopY + (h - fTopY) * 0.47;
+      canvas.drawLine(
+        Offset(cx - fW * 0.3, kY), Offset(cx + fW * 0.3, kY),
+        Paint()..color = _deep..strokeWidth = 1.0,
+      );
+    }
+
+    // ── 4. Pulgar (izquierda, curvado hacia afuera)
+    final tPath = Path()
+      ..moveTo(w * 0.175, h * 0.54)
+      ..quadraticBezierTo(w * 0.005, h * 0.45, w * 0.012, h * 0.12)
+      ..quadraticBezierTo(w * 0.030, h * 0.00, w * 0.110, h * 0.02)
+      ..quadraticBezierTo(w * 0.192, h * 0.06, w * 0.182, h * 0.54)
+      ..close();
+
+    canvas.drawPath(tPath,
+      Paint()..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: const [_hi, _deep],
+      ).createShader(Rect.fromLTWH(0, 0, w * 0.22, h * 0.56)));
+
+    canvas.drawPath(tPath,
+      Paint()..color = Colors.white.withAlpha(12)..style = PaintingStyle.stroke..strokeWidth = 0.8);
+  }
+
+  @override
+  bool shouldRepaint(_) => false;
 }
 
 // ─── Carta en mano (chip interactivo) ─────────────────────────────────────────
