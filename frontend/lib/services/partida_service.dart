@@ -70,6 +70,21 @@ class PartidaService {
     throw Exception(jsonDecode(res.body)['detail'] ?? 'Error al bajar');
   }
 
+  Future<Map<String, dynamic>> swap(
+      int idPartida, int idxMesa, int iidCartaReal, int iidJoker) async {
+    final res = await http.post(
+      Uri.parse(Api.swap(idPartida)),
+      headers: _headers,
+      body: jsonEncode({
+        'idx_mesa': idxMesa,
+        'iid_carta_real': iidCartaReal,
+        'iid_joker': iidJoker,
+      }),
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    throw Exception(jsonDecode(res.body)['detail'] ?? 'Error al hacer swap');
+  }
+
   Future<Map<String, dynamic>> rendirse(int idPartida) async {
     final res = await http.post(
       Uri.parse(Api.rendirse(idPartida)),

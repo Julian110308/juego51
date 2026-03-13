@@ -11,6 +11,7 @@ class GameProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _iaLog = [];
   List<int> _seleccionadas = [];
   List<Map<String, dynamic>> _combinacionesPendientes = [];
+  Map<String, dynamic>? _resultadoFin;
 
   Map<String, dynamic>? get estado => _estado;
   int? get idPartida => _idPartida;
@@ -20,6 +21,7 @@ class GameProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get iaLog => _iaLog;
   List<int> get seleccionadas => _seleccionadas;
   List<Map<String, dynamic>> get combinacionesPendientes => _combinacionesPendientes;
+  Map<String, dynamic>? get resultadoFin => _resultadoFin;
 
   void init(String token) {
     _service = PartidaService(token);
@@ -102,6 +104,10 @@ class GameProvider extends ChangeNotifier {
       final res = await _service!.descartar(_idPartida!, iidCarta);
       _estado = res['estado'];
       _iaLog = List<Map<String, dynamic>>.from(res['ia_log'] ?? []);
+      final resultado = res['resultado'] as Map<String, dynamic>?;
+      if (resultado != null && resultado['ronda_terminada'] == true) {
+        _resultadoFin = resultado;
+      }
       limpiarSeleccion();
       return true;
     } catch (e) {
@@ -155,6 +161,24 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> swap(int idxMesa, int iidCartaReal, int iidJoker) async {
+    _cargando = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final res = await _service!.swap(_idPartida!, idxMesa, iidCartaReal, iidJoker);
+      _estado = res['estado'];
+      limpiarSeleccion();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      _cargando = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> rendirse() async {
     _cargando = true;
     _error = null;
@@ -170,6 +194,14 @@ class GameProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // ── Setters protegidos para SalaProvider ────────────────────────────────────
+  void updateEstado(Map<String, dynamic>? v) { _estado = v; notifyListeners(); }
+  void updateIdJugadorPartida(int? v) { _idJugadorPartida = v; }
+  void updateCargando(bool v) { _cargando = v; notifyListeners(); }
+  void updateError(String? v) { _error = v; notifyListeners(); }
+  void updateIaLog(List<Map<String, dynamic>> v) { _iaLog = v; notifyListeners(); }
+  void updateResultadoFin(Map<String, dynamic>? v) { _resultadoFin = v; notifyListeners(); }
 
   Map<String, dynamic>? get miEstado {
     if (_estado == null || _idJugadorPartida == null) return null;
@@ -198,6 +230,7 @@ class GameProvider extends ChangeNotifier {
     _iaLog = [];
     _seleccionadas = [];
     _error = null;
+    _resultadoFin = null;
     notifyListeners();
   }
 }
