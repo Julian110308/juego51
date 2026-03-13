@@ -90,8 +90,15 @@ class GameScreen extends StatelessWidget {
             _Header(game: game),
             if (game.error != null) _ErrorStrip(mensaje: game.error!),
             if (game.iaLog.isNotEmpty) _LogIA(log: game.iaLog),
-            Expanded(child: _Mesa(game: game)),
-            _MiMano(game: game),
+            Expanded(
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Positioned.fill(child: _Mesa(game: game)),
+                  Positioned(left: 0, right: 0, bottom: 0, child: _MiMano(game: game)),
+                ],
+              ),
+            ),
             _AccionesBar(game: game),
           ],
         ),
@@ -1197,57 +1204,99 @@ class _MiMano extends StatelessWidget {
     final mano = (game.miEstado?['mano'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     return Container(
-      height: 96,
-      color: _C.bgPanel,
+      height: 122,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Color(0xE00D1117), Color(0xFF07090F)],
+          stops: [0.0, 0.28, 1.0],
+        ),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(height: 1, color: _C.gold.withAlpha(30)),
+          // Carril / separador decorativo
           Padding(
-            padding: const EdgeInsets.only(left: 14, top: 6, bottom: 2),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
             child: Row(
               children: [
-                Text(
-                  'MI MANO',
-                  style: GoogleFonts.inter(color: _C.text3, fontSize: 8, letterSpacing: 2, fontWeight: FontWeight.w700),
-                ),
-                if (game.seleccionadas.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                Expanded(
+                  child: Container(
+                    height: 1,
                     decoration: BoxDecoration(
-                      color: _C.gold.withAlpha(30),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '${game.seleccionadas.length} SELECCIONADA(S)',
-                      style: GoogleFonts.inter(color: _C.goldLight, fontSize: 7, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+                      gradient: LinearGradient(
+                        colors: [Colors.transparent, _C.gold.withAlpha(70), Colors.transparent],
+                      ),
                     ),
                   ),
-                ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    children: [
+                      Text('MI MANO', style: GoogleFonts.inter(color: _C.text3, fontSize: 8, letterSpacing: 2, fontWeight: FontWeight.w700)),
+                      if (game.seleccionadas.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: _C.gold.withAlpha(30),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${game.seleccionadas.length} SEL.',
+                            style: GoogleFonts.inter(color: _C.goldLight, fontSize: 7, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.transparent, _C.gold.withAlpha(70), Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
+          const SizedBox(height: 4),
+          // Cartas en abanico
           Expanded(
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               itemCount: mano.length,
               itemBuilder: (context, index) {
                 final carta = mano[index];
                 final iid = carta['iid'] ?? '$index';
                 final sel = game.seleccionadas.contains(iid);
+                // Leve rotación tipo abanico
+                final mid = (mano.length - 1) / 2.0;
+                final angle = (index - mid) * 0.018;
                 return Padding(
-                  padding: const EdgeInsets.only(right: 5),
-                  child: _CartaChip(
-                    carta: carta,
-                    seleccionada: sel,
-                    onTap: () => game.toggleSeleccion(iid),
-                    grande: true,
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Transform.rotate(
+                    angle: angle,
+                    alignment: Alignment.bottomCenter,
+                    child: _CartaChip(
+                      carta: carta,
+                      seleccionada: sel,
+                      onTap: () => game.toggleSeleccion(iid),
+                      grande: true,
+                    ),
                   ),
                 );
               },
             ),
           ),
+          const SizedBox(height: 6),
         ],
       ),
     );
