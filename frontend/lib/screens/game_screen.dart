@@ -11,11 +11,6 @@ class _C {
   static const bgPanel     = Color(0xFF0D1117);
   static const bgCard      = Color(0xFF111827);
 
-  // Mesa (tapete oscuro lujo)
-  static const felt0       = Color(0xFF0C1829);
-  static const felt1       = Color(0xFF071221);
-  static const felt2       = Color(0xFF040C17);
-
   // Borde dorado
   static const gold        = Color(0xFFFFB800);
   static const goldLight   = Color(0xFFFFD55E);
@@ -314,72 +309,167 @@ class _Mesa extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+      margin: const EdgeInsets.fromLTRB(8, 6, 8, 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(120),
+          topRight: Radius.circular(120),
+          bottomLeft: Radius.circular(18),
+          bottomRight: Radius.circular(18),
+        ),
         boxShadow: [
-          BoxShadow(color: _C.gold.withAlpha(18), blurRadius: 0, spreadRadius: 2),
-          BoxShadow(color: Colors.black.withAlpha(180), blurRadius: 20, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withAlpha(230), blurRadius: 40, offset: const Offset(0, 16), spreadRadius: 4),
+          BoxShadow(color: const Color(0xFF7B4A1A).withAlpha(80), blurRadius: 25, spreadRadius: -2),
         ],
-        border: Border.all(color: _C.gold.withAlpha(40), width: 1),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            // Fondo tapete premium
-            Positioned.fill(
-              child: CustomPaint(painter: _FeltPainter()),
-            ),
-            // Contenido
-            Column(
-              children: [
-                _AiZone(game: game),
-                _FeltDivider(label: 'BARAJA'),
-                _BarajaZone(game: game),
-                _FeltDivider(label: 'COMBINACIONES EN MESA'),
-                Expanded(child: _CombinacionesScroll(game: game)),
-                _MiPanelEnTapete(game: game),
-              ],
-            ),
-          ],
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(120),
+          topRight: Radius.circular(120),
+          bottomLeft: Radius.circular(18),
+          bottomRight: Radius.circular(18),
+        ),
+        child: CustomPaint(
+          painter: _TablePainter(),
+          child: Column(
+            children: [
+              _AiZone(game: game),
+              _FeltDivider(label: 'BARAJA'),
+              _BarajaZone(game: game),
+              _FeltDivider(label: 'COMBINACIONES EN MESA'),
+              Expanded(child: _CombinacionesScroll(game: game)),
+              _MiPanelEnTapete(game: game),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _FeltPainter extends CustomPainter {
+/// Mesa de casino: madera cálida → cuero caramelo → ribete dorado → tapete verde
+class _TablePainter extends CustomPainter {
+  const _TablePainter();
+
+  /// RRect simétrico con radios que respetan la forma asimétrica de la mesa
+  RRect _rRect(Size size, double inset) {
+    final rect = Rect.fromLTWH(inset, inset, size.width - inset * 2, size.height - inset * 2);
+    return RRect.fromRectAndCorners(rect,
+      topLeft:     Radius.circular(math.max(120 - inset, 0)),
+      topRight:    Radius.circular(math.max(120 - inset, 0)),
+      bottomLeft:  Radius.circular(math.max(18  - inset, 0)),
+      bottomRight: Radius.circular(math.max(18  - inset, 0)),
+    );
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    // Gradiente radial de fondo
-    final bgPaint = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(0, -0.2),
-        radius: 1.2,
-        colors: const [_C.felt0, _C.felt1, _C.felt2],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
+    const rimW     = 28.0;   // ancho del marco de madera
+    const leatherW = 13.0;   // ancho del acolchado de cuero
+    const goldW    =  2.5;   // grosor del ribete dorado
 
-    // Patrón de puntos sutil
-    final dotPaint = Paint()
-      ..color = Colors.white.withAlpha(6)
-      ..style = PaintingStyle.fill;
-    for (double x = 0; x < size.width; x += 24) {
-      for (double y = 0; y < size.height; y += 24) {
-        canvas.drawCircle(Offset(x, y), 1, dotPaint);
-      }
+    final fullRect = Rect.fromLTWH(0, 0, size.width, size.height);
+
+    // ── 1. Marco de madera cálida (toda la superficie, recortada por ClipRRect padre)
+    canvas.drawRect(fullRect, Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: const [
+          Color(0xFFA07040), Color(0xFF6B3E14), Color(0xFF8B5520),
+          Color(0xFF4A2A08), Color(0xFF9B6530),
+        ],
+        stops: const [0.0, 0.2, 0.5, 0.78, 1.0],
+      ).createShader(fullRect));
+
+    // Veta de madera: líneas onduladas sutiles
+    final grainPaint = Paint()..color = Colors.black.withAlpha(20)..strokeWidth = 0.8;
+    for (double y = 0; y < size.height; y += 7) {
+      final w1 = math.sin(y * 0.09) * 3.0;
+      final w2 = math.sin(y * 0.06 + 1.2) * 2.0;
+      canvas.drawLine(Offset(0, y + w1), Offset(size.width, y + w2), grainPaint);
     }
 
-    // Brillo central
-    final glowPaint = Paint()
+    // Reflejo cenital sobre la madera
+    canvas.drawRect(fullRect, Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: const Alignment(0, 0.4),
+        colors: [Colors.white.withAlpha(50), Colors.transparent],
+      ).createShader(fullRect));
+
+    // ── 2. Cuero caramelo (bumper/acolchado)
+    final leatherRRect = _rRect(size, rimW);
+    final leatherRect  = leatherRRect.outerRect;
+    canvas.drawRRect(leatherRRect, Paint()
       ..shader = RadialGradient(
-        center: Alignment.topCenter,
+        center: const Alignment(0, -0.7),
+        radius: 1.7,
+        colors: const [Color(0xFFDFB07A), Color(0xFFB88848), Color(0xFF7A5520)],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(leatherRect));
+
+    // Reflejo del cuero (línea interior superior)
+    canvas.drawRRect(leatherRRect, Paint()
+      ..color = Colors.white.withAlpha(35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2);
+
+    // ── 3. Ribete dorado
+    final goldRRect = _rRect(size, rimW + leatherW);
+    final goldRect  = goldRRect.outerRect;
+    canvas.drawRRect(goldRRect, Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: const [Color(0xFFFFE57A), Color(0xFFFFB800), Color(0xFF8B6914), Color(0xFFFFD55E)],
+        stops: const [0.0, 0.33, 0.66, 1.0],
+      ).createShader(goldRect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = goldW * 2);
+
+    // ── 4. Tapete verde
+    final feltInset = rimW + leatherW + goldW;
+    final feltRRect = _rRect(size, feltInset);
+    final feltRect  = feltRRect.outerRect;
+
+    canvas.drawRRect(feltRRect, Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -0.2),
+        radius: 1.3,
+        colors: const [Color(0xFF217A45), Color(0xFF0E5C2A), Color(0xFF083D1C)],
+        stops: const [0.0, 0.55, 1.0],
+      ).createShader(feltRect));
+
+    // Textura tejida del tapete
+    canvas.save();
+    canvas.clipRRect(feltRRect);
+    final wH = Paint()..color = Colors.white.withAlpha(5)..strokeWidth = 0.5;
+    for (double y = feltInset; y < size.height; y += 3) {
+      canvas.drawLine(Offset(feltInset, y), Offset(size.width - feltInset, y), wH);
+    }
+    final wV = Paint()..color = Colors.white.withAlpha(3)..strokeWidth = 0.5;
+    for (double x = feltInset; x < size.width; x += 3) {
+      canvas.drawLine(Offset(x, feltInset), Offset(x, size.height), wV);
+    }
+
+    // Viñeta del tapete
+    canvas.drawRRect(feltRRect, Paint()
+      ..shader = RadialGradient(
+        center: Alignment.center,
+        radius: 1.0,
+        colors: [Colors.transparent, Colors.black.withAlpha(75)],
+        stops: const [0.5, 1.0],
+      ).createShader(feltRect));
+    canvas.restore();
+
+    // Brillo cenital sobre el tapete
+    canvas.drawRRect(feltRRect, Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -0.5),
         radius: 0.8,
-        colors: [Colors.white.withAlpha(10), Colors.transparent],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height * 0.6));
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height * 0.6), glowPaint);
+        colors: [Colors.white.withAlpha(24), Colors.transparent],
+      ).createShader(feltRect));
   }
 
   @override
